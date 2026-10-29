@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0e1120">
+<title>人生RPG · 数据驱动的日常决策</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0e1120;--card:#1a2036;--card2:#232b4a;--line:#2e3757;
+  --text:#e9edff;--sub:#8b93b8;--gold:#f5c542;--purple:#7c5cff;
+  --green:#3ddc84;--red:#ff5d6c;--blue:#4da3ff;--orange:#ff9f43;
+}
+html,body{height:100%}
+body{background:#07091a;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:var(--text);font-size:15px}
+#app{max-width:480px;margin:0 auto;min-height:100vh;background:linear-gradient(180deg,#141a33 0%,#0e1120 40%);padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(14,17,32,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:12px;min-height:62px}
+.backbtn{background:none;border:none;color:var(--gold);font-size:15px;padding:6px 10px 6px 0;cursor:pointer;white-space:nowrap}
+.titles{flex:1;min-width:0}
+.t1{font-size:11px;color:var(--sub);letter-spacing:2px}
+.t2{font-size:18px;font-weight:700;color:var(--gold);text-shadow:0 0 18px rgba(245,197,66,.25)}
+/* ---------- 页面 ---------- */
+main{padding:14px 14px 8px}
+.page{display:none}
+.page.active{display:block;animation:fadein .22s}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+.subview{animation:fadein .22s}
+.hidden{display:none!important}
+/* ---------- 底部导航 ---------- */
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;display:flex;background:rgba(15,19,36,.98);border-top:1px solid var(--line);z-index:30;padding:6px 0 calc(6px + env(safe-area-inset-bottom))}
+.nav-btn{flex:1;background:none;border:none;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:11px;cursor:pointer;font-family:inherit}
+.nav-btn .ni{font-size:21px;line-height:1;filter:grayscale(.7);transition:.2s}
+.nav-btn.active{color:var(--gold)}
+.nav-btn.active .ni{filter:none;transform:translateY(-2px) scale(1.12)}
+/* ---------- 通用组件 ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.card.clickable{cursor:pointer;transition:.15s}
+.card.clickable:active{transform:scale(.98);border-color:var(--gold)}
+.btn{display:block;width:100%;padding:12px;border-radius:12px;border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,#f5c542,#f7971e);color:#241a00}
+.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--line)}
+.btn-danger{background:rgba(255,93,108,.12);color:var(--red);border:1px solid rgba(255,93,108,.3)}
+.btn-sm{padding:8px 12px;font-size:13px;width:auto;display:inline-block}
+.row{display:flex;align-items:center;gap:10px}
+.row .grow{flex:1;min-width:0}
+h2{font-size:17px;margin-bottom:6px}
+h3{font-size:14px;color:var(--gold);margin-bottom:8px;letter-spacing:1px}
+.sub{font-size:12px;color:var(--sub);line-height:1.5}
+.money{font-family:"SF Mono",Consolas,monospace}
+.tag{display:inline-block;font-size:11px;padding:3px 9px;border-radius:10px;background:var(--card2);color:var(--sub);margin-right:6px}
+.tag.gold{background:rgba(245,197,66,.15);color:var(--gold)}
+.tag.green{background:rgba(61,220,132,.12);color:var(--green)}
+.tag.red{background:rgba(255,93,108,.12);color:var(--red)}
+.tag.blue{background:rgba(77,163,255,.12);color:var(--blue)}
+.empty{text-align:center;color:var(--sub);font-size:13px;padding:28px 10px;line-height:2}
+/* ---------- 表单 ---------- */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--sub);margin-bottom:5px}
+.field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px 12px;font-size:15px;font-family:inherit;outline:none}
+.field textarea{min-height:64px;resize:vertical;line-height:1.5}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold)}
+.field .req::after{content:" *";color:var(--red)}
+/* ---------- 进度条 / 等级 ---------- */
+.seg5{display:flex;gap:5px;flex:1}
+.seg5 i{flex:1;height:10px;border-radius:5px;background:var(--card2);border:1px solid var(--line)}
+.seg5 i.on{background:linear-gradient(90deg,#f5c542,#f7971e);border-color:transparent;box-shadow:0 0 8px rgba(245,197,66,.4)}
+.lv-badge{font-size:12px;font-weight:700;color:var(--gold);background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.3);padding:3px 10px;border-radius:10px;white-space:nowrap}
+.icon-big{font-size:30px;line-height:1}
+input[type=range]{width:100%;accent-color:var(--gold);height:34px}
+/* ---------- 时间轴 ---------- */
+.timeline{position:relative;padding-left:22px;margin:10px 0}
+.timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl-item{position:relative;margin-bottom:16px}
+.tl-item::before{content:"";position:absolute;left:-19px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--card2);border:2px solid var(--sub)}
+.tl-item.done::before{background:var(--green);border-color:var(--green)}
+.tl-item.goal::before{background:var(--gold);border-color:var(--gold)}
+.tl-date{font-size:11px;color:var(--sub)}
+/* ---------- 星级 ---------- */
+.stars{display:flex;gap:4px;font-size:22px;cursor:pointer}
+.stars span{filter:grayscale(1);opacity:.45;transition:.15s}
+.stars span.on{filter:none;opacity:1}
+/* ---------- 图表 ---------- */
+canvas.chart{width:100%;height:190px;display:block}
+.chart-legend{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:11px;color:var(--sub);margin-top:8px}
+.chart-legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+/* ---------- 模态框 ---------- */
+#modalRoot{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+#modalRoot.hidden{display:none}
+.modal-mask{position:absolute;inset:0;background:rgba(2,4,12,.6)}
+.modal-sheet{position:relative;width:100%;max-width:480px;max-height:84vh;overflow-y:auto;background:#171d34;border-radius:20px 20px 0 0;border:1px solid var(--line);border-bottom:none;padding:16px 16px calc(28px + env(safe-area-inset-bottom));animation:up .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes up{from{transform:translateY(60px);opacity:.4}}
+.sheet-grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+/* ---------- Toast ---------- */
+#toast{position:fixed;top:74px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f5c542,#f7971e);color:#241a00;font-weight:700;font-size:14px;padding:11px 20px;border-radius:26px;z-index:80;box-shadow:0 8px 26px rgba(245,197,66,.45);white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:translate(-50%,-18px) scale(.8);opacity:0}}
+.big-num{font-size:26px;font-weight:800;color:var(--gold);font-family:"SF Mono",Consolas,monospace}
+.divider{height:1px;background:var(--line);margin:12px 0}
+/* ---------- 分段切换 ---------- */
+.seg-bar{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.seg-btn{flex:1;background:none;border:none;color:var(--sub);font-size:13px;font-weight:600;padding:9px 4px;border-radius:9px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.seg-btn.active{background:linear-gradient(135deg,#f5c542,#f7971e);color:#241a00}
+.iconpick.pickon{border-color:var(--gold);background:rgba(245,197,66,.15)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button id="backBtn" class="backbtn hidden" onclick="goBack()">‹ 返回</button>
+    <div class="titles">
+      <div class="t1">LIFE · RPG</div>
+      <div class="t2" id="pageTitle">技能</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ 技能页 ============ -->
+    <section class="page active" id="page-skill">
+      <div id="view-skill-list">
+        <button class="btn btn-primary" onclick="openNewSkillModal()">＋ 新建技能</button>
+        <div id="skillList" class="stack"></div>
+      </div>
+      <div id="view-skill-detail" class="subview hidden"></div>
+      <div id="view-level-detail" class="subview hidden"></div>
+    </section>
+
+    <!-- ============ 财富页 ============ -->
+    <section class="page" id="page-wealth">
+      <div class="seg-bar">
+        <button class="seg-btn active" id="seg-items" onclick="switchWealthTab('items')">📦 物品日均成本</button>
+        <button class="seg-btn" id="seg-cash" onclick="switchWealthTab('cash')">💸 现金流追踪</button>
+      </div>
+      <div id="wealth-items" style="margin-top:12px"></div>
+      <div id="wealth-cash" class="hidden" style="margin-top:12px"></div>
+    </section>
+
+    <!-- ============ 健康页 ============ -->
+    <section class="page" id="page-health">
+      <div id="healthLife"></div>
+      <div id="view-disease-list"></div>
+      <div id="view-disease-detail" class="subview hidden"></div>
+    </section>
+
+    <!-- ============ 职业页 ============ -->
+    <section class="page" id="page-career">
+      <div id="careerView"></div>
+    </section>
+  </main>
+
+  <nav class="bottomnav">
+    <button class="nav-btn active" data-page="skill" onclick="switchPage('skill')"><span class="ni">⚔️</span><span>技能</span></button>
+    <button class="nav-btn" data-page="wealth" onclick="switchPage('wealth')"><span class="ni">💰</span><span>财富</span></button>
+    <button class="nav-btn" data-page="health" onclick="switchPage('health')"><span class="ni">❤️</span><span>健康</span></button>
+    <button class="nav-btn" data-page="career" onclick="switchPage('career')"><span class="ni">🎯</span><span>职业</span></button>
+  </nav>
+</div>
+
+<div id="modalRoot" class="hidden">
+  <div class="modal-mask" onclick="closeModal()"></div>
+  <div class="modal-sheet" id="modalSheet"></div>
+</div>
+<div id="toast" class="hidden"></div>
+
+<script>
+/* ============ 核心工具 & 全局状态 ============ */
+const LEVEL_NAMES = ['小白','入门','熟练','精通','大师'];
+const ITEM_ICONS = ['📱','💻','🎧','⌚','🎮','🚲','📺','📷','👔','👟','📚','🎸','🛋️','🍳','🧳','🎹'];
+const DISEASE_ICONS = ['👓','🦷','💊','🫀','🧠','🦴','🤒','😴','🩹','🫁'];
+
+const DEFAULT_STATE = {
+  skills: [],
+  wealth: { items: [], incomes: [], expenses: [] },
+  health: { birthday: null, diseases: [] },
+  career: {
+    current: { name: '', income: 0, hours: 8, satisfaction: 3 },
+    target:  { name: '', income: 0, skills: [] }
+  }
+};
+let state = loadState();
+
+function loadState(){
+  const clone = obj => JSON.parse(JSON.stringify(obj));
+  try{
+    const raw = localStorage.getItem('lifeRPG.v1');
+    if(!raw) return clone(DEFAULT_STATE);
+    const s = JSON.parse(raw);
+    return Object.assign(clone(DEFAULT_STATE), s);
+  }catch(e){ return clone(DEFAULT_STATE); }
+}
+function save(){ localStorage.setItem('lifeRPG.v1', JSON.stringify(state)); }
+
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const money = n => '¥' + (Math.round(n*10)/10).toLocaleString('zh-CN',{maximumFractionDigits:1});
+const todayStr = () => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const daysBetween = (a,b) => Math.floor((new Date(b) - new Date(a)) / 86400000);
+const clamp = (v,lo,hi) => Math.min(hi, Math.max(lo, v));
+
+/* ---------- Toast / 模态框 ---------- */
+let toastTimer = null;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.add('hidden'), 2600);
+}
+function openModal(html){
+  $('#modalSheet').innerHTML = '<div class="sheet-grip"></div>' + html;
+  $('#modalRoot').classList.remove('hidden');
+}
+function closeModal(){ $('#modalRoot').classList.add('hidden'); }
+
+/* ---------- 页面路由 / 返回 ---------- */
+const PAGE_TITLES = { skill:'技能', wealth:'财富', health:'健康', career:'职业' };
+let currentPage = 'skill';
+function switchPage(p, keepSub){
+  currentPage = p;
+  $$('.page').forEach(el => el.classList.remove('active'));
+  $('#page-'+p).classList.add('active');
+  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === p));
+  $('#pageTitle').textContent = PAGE_TITLES[p];
+  if(!keepSub) resetSubViews();
+  renderCurrentPage();
+  window.scrollTo(0,0);
+}
+function resetSubViews(){
+  ['skill','health'].forEach(p => {
+    $$('#page-'+p+' .subview').forEach(v => v.classList.add('hidden'));
+  });
+  $('#view-skill-list').classList.remove('hidden');
+  $('#view-disease-list').classList.remove('hidden');
+  $('#backBtn').classList.add('hidden');
+}
+function showBackBtn(){ $('#backBtn').classList.remove('hidden'); }
+function goBack(){ resetSubViews(); renderCurrentPage(); }
+
+function renderCurrentPage(){
+  if(currentPage==='skill')  renderSkillPage();
+  if(currentPage==='wealth') renderWealthPage();
+  if(currentPage==='health') renderHealthPage();
+  if(currentPage==='career') renderCareerPage();
+}
+
+/* ============ 轻量图表引擎（Canvas，无外部依赖） ============ */
+function ctxOf(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  const w = Math.max(10, r.width), h = Math.max(10, r.height);
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+/* 折线图: series = [{name,color,data:[number|null],dash?}], labels 与 data 等长 */
+function drawLineChart(canvas, series, labels){
+  const {ctx,w,h} = ctxOf(canvas);
+  ctx.clearRect(0,0,w,h);
+  const padL=38, padR=10, padT=14, padB=22;
+  const iw=w-padL-padR, ih=h-padT-padB;
+  let max=0;
+  series.forEach(s=>s.data.forEach(v=>{ if(v!=null && v>max) max=v; }));
+  if(max<=0) max=1;
+  const nice = max<=1 ? max : Math.ceil(max/5)*5 || 1;
+  const n = labels.length;
+  const X = i => n<=1 ? padL+iw/2 : padL + iw*i/(n-1);
+  const Y = v => padT + ih*(1 - v/nice);
+  // 网格 + Y轴
+  ctx.strokeStyle='#2e3757'; ctx.fillStyle='#8b93b8'; ctx.lineWidth=1; ctx.font='10px sans-serif';
+  for(let g=0; g<=4; g++){
+    const y = padT + ih*g/4;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
+    const val = nice*(1-g/4);
+    ctx.fillText(val>=1000 ? (val/1000)+'k' : (Math.round(val*10)/10), 2, y+3);
+  }
+  // X轴标签（最多显示6个）
+  ctx.textAlign='center';
+  const step = Math.max(1, Math.ceil(n/6));
+  labels.forEach((l,i)=>{ if(i%step===0 || i===n-1) ctx.fillText(l, X(i), h-6); });
+  ctx.textAlign='left';
+  // 折线
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color; ctx.lineWidth=2.2; ctx.beginPath();
+    let started=false;
+    s.data.forEach((v,i)=>{
+      if(v==null){ started=false; return; }
+      const x=X(i), y=Y(v);
+      if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
+    });
+    if(s.dash) ctx.setLineDash([5,4]);
+    ctx.stroke(); ctx.setLineDash([]);
+    s.data.forEach((v,i)=>{
+      if(v==null) return;
+      ctx.fillStyle=s.color;
+      ctx.beginPath(); ctx.arc(X(i),Y(v),3,0,7); ctx.fill();
+    });
+  });
+}
+/* 环形图: segments = [{label,value,color}] */
+function drawDonut(canvas, segments, centerText){
+  const {ctx,w,h} = ctxOf(canvas);
+  ctx.clearRect(0,0,w,h);
+  const total = segments.reduce((a,s)=>a+s.value,0);
+  const cx=w/2, cy=h/2, R=Math.min(w,h)/2-8, r=R*0.62;
+  if(total<=0){
+    ctx.strokeStyle='#2e3757'; ctx.lineWidth=R-r;
+    ctx.beginPath(); ctx.arc(cx,cy,(R+r)/2,0,7); ctx.stroke();
+  }else{
+    let ang=-Math.PI/2;
+    segments.forEach(s=>{
+      if(s.value<=0) return;
+      const a2 = ang + s.value/total*Math.PI*2;
+      ctx.strokeStyle=s.color; ctx.lineWidth=R-r; ctx.lineCap='butt';
+      ctx.beginPath(); ctx.arc(cx,cy,(R+r)/2,ang+0.02,a2-0.02); ctx.stroke();
+      ang=a2;
+    });
+  }
+  ctx.fillStyle='#e9edff'; ctx.textAlign='center'; ctx.font='700 15px sans-serif';
+  ctx.fillText(centerText||'', cx, cy+5);
+  ctx.textAlign='left';
+}
+/* 横向进度条 (HTML) */
+function progressBar(pct, color){
+  pct = clamp(pct,0,100);
+  return `<div style="background:var(--card2);border-radius:6px;height:10px;overflow:hidden;margin:6px 0">
+    <div style="width:${pct}%;height:100%;background:${color||'linear-gradient(90deg,#f5c542,#f7971e)'};border-radius:6px;transition:width .4s"></div></div>`;
+}
+function seg5(level){
+  let s='';
+  for(let i=1;i<=5;i++) s+=`<i class="${i<=level?'on':''}"></i>`;
+  return s;
+}
+/* ============ 技能页：动态技能树 ============ */
+function blankLevels(){
+  return Array.from({length:5}, ()=>({flag:'',task:'',valid:'',invalid:''}));
+}
+function lvFilled(lv){ return lv && lv.flag && lv.task && lv.valid && lv.invalid; }
+
+function renderSkillPage(){
+  const listEl = $('#view-skill-list');
+  if(!listEl.classList.contains('hidden')){
+    const box = $('#skillList');
+    if(!state.skills.length){
+      box.innerHTML = `<div class="card empty">🌱 技能树还是空的<br>新建你的第一个技能，开始 5 级修炼之路<br><span class="sub">小白 → 入门 → 熟练 → 精通 → 大师</span></div>`;
+    }else{
+      box.innerHTML = state.skills.map(sk=>{
+        const lvName = LEVEL_NAMES[sk.level-1];
+        const done = sk.levels.filter(lvFilled).length;
+        return `<div class="card clickable" onclick="openSkillDetail('${sk.id}')">
+          <div class="row">
+            <div class="grow">
+              <div class="row"><b style="font-size:16px">${esc(sk.name)}</b><span class="lv-badge">Lv.${sk.level} ${lvName}</span></div>
+              <div class="row" style="margin-top:8px"><div class="seg5">${seg5(sk.level)}</div><span class="sub money" style="margin-left:8px">${sk.level}/5</span></div>
+              <div class="sub" style="margin-top:6px">等级档案完成度 ${done}/5 · 点击查看详情</div>
+            </div>
+            <span style="font-size:24px">${['🌱','🔰','⚙️','🎯','👑'][sk.level-1]}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+/* ---- 新建技能 ---- */
+function openNewSkillModal(){
+  openModal(`
+    <h2>新建技能</h2>
+    <p class="sub" style="margin-bottom:12px">创建后自动生成 5 级空白等级模板，请在等级详情中补全每一级内容。</p>
+    <div class="field"><label class="req">技能名称</label><input type="text" id="nsName" placeholder="例如：钢琴、Python、写作"></div>
+    <button class="btn btn-primary" onclick="createSkill()">创建技能</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+  setTimeout(()=>$('#nsName')?.focus(),100);
+}
+function createSkill(){
+  const name = $('#nsName').value.trim();
+  if(!name){ toast('请输入技能名称'); return; }
+  const sk = { id:uid(), name, level:1, levels:blankLevels(), createdAt:todayStr() };
+  state.skills.push(sk); save(); closeModal();
+  toast('🌱 新技能「'+name+'」加入技能树！');
+  renderSkillPage();
+  openSkillDetail(sk.id);
+}
+
+/* ---- 技能详情 ---- */
+function findSkill(id){ return state.skills.find(s=>s.id===id); }
+
+function openSkillDetail(id){
+  $('#view-skill-list').classList.add('hidden');
+  $('#view-level-detail').classList.add('hidden');
+  const v = $('#view-skill-detail');
+  v.classList.remove('hidden');
+  showBackBtn();
+  const sk = findSkill(id);
+  v.innerHTML = `
+    <div class="card">
+      <div class="row">
+        <span style="font-size:30px">${['🌱','🔰','⚙️','🎯','👑'][sk.level-1]}</span>
+        <div class="grow"><h2 style="margin:0">${esc(sk.name)}</h2>
+        <div class="sub">创建于 ${sk.createdAt}</div></div>
+        <span class="lv-badge">Lv.${sk.level} ${LEVEL_NAMES[sk.level-1]}</span>
+      </div>
+      <div class="divider"></div>
+      <div onclick="openLevelDetail('${sk.id}',${sk.level})" style="cursor:pointer">
+        <div class="row"><span class="sub">当前等级进度</span><span class="sub money" style="margin-left:auto">${sk.level}/5</span></div>
+        <div class="row" style="margin-top:8px"><div class="seg5" >${seg5(sk.level)}</div></div>
+        <div class="sub" style="margin-top:6px;color:var(--gold)">▸ 点击进度条，进入等级详情编辑</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>五级修炼之路</h3>
+      <div class="stack" style="margin-top:4px">
+      ${sk.levels.map((lv,i)=>{
+        const filled = lvFilled(lv);
+        return `<div class="row clickable" style="background:var(--card2);border-radius:12px;padding:10px 12px;border:1px solid var(--line)" onclick="openLevelDetail('${sk.id}',${i+1})">
+          <span style="font-size:18px">${['🌱','🔰','⚙️','🎯','👑'][i]}</span>
+          <div class="grow"><b>Lv.${i+1} ${LEVEL_NAMES[i]}</b>${i+1===sk.level?' <span class="tag gold">当前</span>':''}
+          <div class="sub" style="margin-top:2px">${filled?'档案已补全':'待补全：'+['识别标志','核心任务','有效示例','无效示例'].filter(k=>!lv[k]).join(' / ')}</div></div>
+          <span style="color:${filled?'var(--green)':'var(--sub)'}">${filled?'✓':'✎'}</span>
+        </div>`;
+      }).join('')}
+      </div>
+    </div>
+    <button class="btn btn-danger" onclick="deleteSkill('${sk.id}')">删除技能</button>`;
+}
+
+function deleteSkill(id){
+  const sk = findSkill(id);
+  openModal(`
+    <h2>删除「${esc(sk.name)}」？</h2>
+    <p class="sub" style="margin:8px 0 14px">所有等级档案将一并删除，不可恢复。</p>
+    <button class="btn btn-danger" onclick="confirmDeleteSkill('${id}')">确认删除</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function confirmDeleteSkill(id){
+  state.skills = state.skills.filter(s=>s.id!==id);
+  state.career.target.skills = state.career.target.skills.filter(s=>s.skillId!==id);
+  save(); closeModal(); goBack(); toast('技能已删除');
+}
+
+/* ---- 等级详情（编辑当前等级） ---- */
+let editing = null; // {skillId, lv}
+
+function openLevelDetail(id, lv){
+  const sk = findSkill(id);
+  editing = { skillId:id, lv:clamp(lv,1,5) };
+  $('#view-skill-detail').classList.add('hidden');
+  const v = $('#view-level-detail');
+  v.classList.remove('hidden');
+  renderLevelDetail();
+}
+function renderLevelDetail(){
+  const sk = findSkill(editing.skillId);
+  const lvData = sk.levels[editing.lv-1];
+  $('#view-level-detail').innerHTML = `
+    <div class="card">
+      <h2>${esc(sk.name)} · 等级档案</h2>
+      <div class="row" style="margin:10px 0 2px">
+        <span class="sub">当前等级</span>
+        <b style="color:var(--gold);margin-left:auto;font-size:16px">Lv.${editing.lv} ${LEVEL_NAMES[editing.lv-1]}</b>
+      </div>
+      <input type="range" min="1" max="5" step="1" value="${editing.lv}"
+        oninput="onLvSlider(this.value)">
+      <div class="row" style="gap:4px;margin-top:-4px">
+        ${LEVEL_NAMES.map((n,i)=>`<span class="sub" style="flex:1;text-align:center;font-size:11px;${i+1===editing.lv?'color:var(--gold);font-weight:700':''}">${n}</span>`).join('')}
+      </div>
+      <p class="sub" style="margin-top:6px">滑动选择等级 · 字段自动保存 · 调高等级即完成升级</p>
+    </div>
+
+    <div class="card">
+      <h3>Lv.${editing.lv}「${LEVEL_NAMES[editing.lv-1]}」专属文本</h3>
+      <div class="field"><label class="req">识别标志</label>
+        <textarea id="fFlag" placeholder="进入该等级的可观察信号，例：能双手连贯弹奏《小星星变奏曲》" oninput="saveLvField('flag',this.value)">${esc(lvData.flag)}</textarea></div>
+      <div class="field"><label class="req">核心任务</label>
+        <textarea id="fTask" placeholder="该等级必须完成的事，例：每日 30 分钟哈农 + 一首练习曲" oninput="saveLvField('task',this.value)">${esc(lvData.task)}</textarea></div>
+      <div class="field"><label class="req">有效示例</label>
+        <textarea id="fValid" placeholder="算作有效训练的行为，例：慢速分手练习并录音复盘" oninput="saveLvField('valid',this.value)">${esc(lvData.valid)}</textarea></div>
+      <div class="field"><label class="req">无效示例</label>
+        <textarea id="fInvalid" placeholder="看似努力实则无效的行为，例：只弹喜欢的段落、跳过基本功" oninput="saveLvField('invalid',this.value)">${esc(lvData.invalid)}</textarea></div>
+      <div class="sub">✎ 所有修改自动保存</div>
+    </div>
+
+    <div class="card" style="border-color:rgba(245,197,66,.35)">
+      <h3>💡 升级建议</h3>
+      <div class="sub" style="line-height:1.8">${upgradeSuggestion(sk)}</div>
+    </div>`;
+}
+function saveLvField(key, val){
+  const sk = findSkill(editing.skillId);
+  sk.levels[editing.lv-1][key] = val;
+  save();
+  // 更新建议（避免整页重绘丢焦点，只更新建议块）
+}
+function onLvSlider(val){
+  const sk = findSkill(editing.skillId);
+  const nv = clamp(parseInt(val),1,5);
+  if(nv === editing.lv) return;
+  const old = editing.lv;
+  editing.lv = nv;
+  if(nv > old && nv > sk.level){
+    sk.level = nv;
+    save();
+    toast('🏆 成就达成：'+sk.name+' → '+LEVEL_NAMES[nv-1]+'！');
+  }else if(nv !== sk.level && nv <= sk.level){
+    // 用户直接把滑块当作“修改当前等级”
+    sk.level = nv; save();
+  }
+  renderLevelDetail();
+}
+function upgradeSuggestion(sk){
+  const lv = sk.levels[editing.lv-1];
+  const missing = ['flag','task','valid','invalid'].filter(k=>!lv[k]);
+  if(missing.length){
+    const names = {flag:'识别标志',task:'核心任务',valid:'有效示例',invalid:'无效示例'};
+    return `先补全本级档案（缺 <b style="color:var(--gold)">${missing.map(m=>names[m]).join(' / ')}</b>），档案完整是升级的前提。`;
+  }
+  if(sk.level >= 5) return `你已是「${sk.name}」的 <b style="color:var(--gold)">大师</b>。下一步：以教代学，带出一个「入门」级的徒弟。`;
+  const next = LEVEL_NAMES[sk.level];
+  return `对照「有效示例」完成 <b style="color:var(--gold)">3 次有效训练</b>（${esc(lv.task)}），并确认不再出现「${esc(lv.invalid)}」类无效行为，即可尝试升级至「${next}」。`;
+}
+/* ============ 财富页 ============ */
+let wealthTab = 'items';
+function switchWealthTab(t){
+  wealthTab = t;
+  $('#seg-items').classList.toggle('active', t==='items');
+  $('#seg-cash').classList.toggle('active', t==='cash');
+  $('#wealth-items').classList.toggle('hidden', t!=='items');
+  $('#wealth-cash').classList.toggle('hidden', t!=='cash');
+  renderWealthPage();
+}
+function renderWealthPage(){
+  if(wealthTab==='items') renderItemsView(); else renderCashView();
+}
+function itemDailyCost(it){ return it.price / Math.max(1, it.lifeDays); }
+function itemRemainDays(it){
+  const used = daysBetween(it.buyDate, todayStr());
+  return Math.max(0, it.lifeDays - used);
+}
+
+/* ---- 模块1：物品日均成本 ---- */
+function renderItemsView(){
+  const el = $('#wealth-items');
+  const items = [...state.wealth.items].sort((a,b)=>itemDailyCost(b)-itemDailyCost(a));
+  let html = `<button class="btn btn-primary" onclick="openItemModal()">＋ 添加物品</button>`;
+  if(!items.length){
+    html += `<div class="card empty">📦 还没有录入物品<br><span class="sub">录入价格与预期寿命，看看每件东西每天“吃掉”多少钱</span></div>`;
+  }else{
+    html += `<div class="stack">` + items.map(it=>{
+      const rem = itemRemainDays(it);
+      return `<div class="card clickable" onclick="openItemDetail('${it.id}')">
+        <div class="row">
+          <span class="icon-big">${it.icon}</span>
+          <div class="grow">
+            <b>${esc(it.name)}</b>
+            <div class="sub money" style="margin-top:3px">日均成本：<b style="color:var(--gold);font-size:15px">${money(itemDailyCost(it))}</b> /天</div>
+            <div class="sub">剩余寿命：<span style="color:${rem>0?'var(--green)':'var(--red)'}">${rem>0?rem+' 天':'已到期'}</span></div>
+          </div>
+        </div></div>`;
+    }).join('') + `</div>
+    <div class="card" style="margin-top:2px"><div class="sub">💰 全部物品合计日均成本：
+      <b class="money" style="color:var(--gold);font-size:15px">${money(items.reduce((a,i)=>a+itemDailyCost(i),0))}</b> /天 ·
+      每月约 <b class="money">${money(items.reduce((a,i)=>a+itemDailyCost(i),0)*30)}</b></div></div>`;
+  }
+  el.innerHTML = html;
+}
+function openItemModal(id){
+  const it = id ? state.wealth.items.find(i=>i.id===id) : null;
+  openModal(`
+    <h2>${it?'编辑物品':'添加物品'}</h2>
+    <div class="field"><label>图标</label>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        ${ITEM_ICONS.map(ic=>`<button class="btn btn-sm btn-ghost iconpick ${it&&it.icon===ic?'pickon':''}" data-ic="${ic}" onclick="pickIcon(this)" style="font-size:18px;padding:6px 10px">${ic}</button>`).join('')}
+      </div></div>
+    <div class="field"><label class="req">名称</label><input type="text" id="itName" value="${it?esc(it.name):''}" placeholder="例如：手机"></div>
+    <div class="field"><label class="req">购买价格（元）</label><input type="number" id="itPrice" inputmode="decimal" value="${it?it.price:''}" placeholder="例如：4999"></div>
+    <div class="field"><label class="req">预期使用寿命（天）</label><input type="number" id="itLife" inputmode="numeric" value="${it?it.lifeDays:''}" placeholder="例如：1095"></div>
+    <div class="field"><label class="req">购买日期</label><input type="date" id="itDate" value="${it?it.buyDate:todayStr()}"></div>
+    <button class="btn btn-primary" onclick="saveItem('${id||''}')">保存</button>
+    ${it?`<button class="btn btn-danger" style="margin-top:8px" onclick="deleteItem('${id}')">删除物品</button>`:''}
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+  window._pickIcon = it ? it.icon : ITEM_ICONS[0];
+}
+function pickIcon(btn){
+  window._pickIcon = btn.dataset.ic;
+  $$('.iconpick').forEach(b=>b.classList.remove('pickon'));
+  btn.classList.add('pickon');
+}
+function saveItem(id){
+  const name=$('#itName').value.trim(), price=num($('#itPrice').value),
+        life=Math.round(num($('#itLife').value)), date=$('#itDate').value;
+  if(!name||!price||!life||!date){ toast('请完整填写所有字段'); return; }
+  if(id){
+    Object.assign(state.wealth.items.find(i=>i.id===id), {name,price,lifeDays:life,buyDate:date,icon:window._pickIcon});
+  }else{
+    state.wealth.items.push({id:uid(),name,price,lifeDays:life,buyDate:date,icon:window._pickIcon,usage:[]});
+  }
+  save(); closeModal(); renderItemsView();
+  toast('📦 物品「'+name+'」已录入');
+}
+function deleteItem(id){
+  state.wealth.items = state.wealth.items.filter(i=>i.id!==id);
+  save(); closeModal(); renderItemsView(); toast('物品已删除');
+}
+
+/* ---- 物品详情：折线图 ---- */
+function openItemDetail(id){
+  const it = state.wealth.items.find(i=>i.id===id);
+  const recs = [...(it.usage||[])].sort((a,b)=>a.date<b.date?-1:1);
+  openModal(`
+    <h2>${it.icon} ${esc(it.name)}</h2>
+    <div class="sub money" style="margin-bottom:10px">购买价 ${money(it.price)} · 预期寿命 ${it.lifeDays} 天 · 理论日均 ${money(itemDailyCost(it))} · 剩余 ${itemRemainDays(it)} 天</div>
+    <div class="card">
+      <h3>📉 历史日均成本 vs 使用频率</h3>
+      ${recs.length ? `<canvas class="chart" id="itemChart"></canvas>
+        <div class="chart-legend">
+          <span><b style="background:#ff5d6c"></b>实际日均成本(¥，越低越好)</span>
+          <span><b style="background:#4da3ff"></b>每日使用次数</span>
+        </div>` : `<div class="empty">暂无使用记录<br><span class="sub">先在下方记录“大概每日使用次数”</span></div>`}
+    </div>
+    <div class="card">
+      <h3>📝 使用记录（大概每日使用次数）</h3>
+      ${recs.length ? recs.map(r=>`
+        <div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)">
+          <span class="sub money">${r.date.slice(5)}</span>
+          <span style="margin-left:auto"><b>${r.count}</b> 次/天 · 实际日均 <b class="money" style="color:var(--red)">${money(it.price/Math.max(1,daysBetween(it.buyDate,r.date))/Math.max(1,r.count))}</b>/次</span>
+          <button class="btn btn-sm btn-ghost" style="margin-left:8px" onclick="delUsage('${id}','${r.date}')">✕</button>
+        </div>`).join('') : '<div class="sub">还没有记录</div>'}
+      <button class="btn btn-primary" style="margin-top:10px" onclick="openUsageModal('${id}')">＋ 记录使用次数</button>
+    </div>
+    <button class="btn btn-ghost" onclick="openItemModal('${id}')">编辑物品信息</button>`);
+  if(recs.length){
+    requestAnimationFrame(()=>{
+      const labels=[], costData=[], freqData=[];
+      recs.forEach(r=>{
+        labels.push(r.date.slice(5));
+        costData.push(it.price/Math.max(1,daysBetween(it.buyDate,r.date)));
+        freqData.push(r.count);
+      });
+      drawLineChart($('#itemChart'), [
+        {name:'日均成本',color:'#ff5d6c',data:costData},
+        {name:'使用次数',color:'#4da3ff',data:freqData}
+      ], labels);
+    });
+  }
+}
+function openUsageModal(id){
+  openModal(`
+    <h2>记录使用次数</h2>
+    <div class="field"><label class="req">日期</label><input type="date" id="usDate" value="${todayStr()}"></div>
+    <div class="field"><label class="req">大概每日使用次数</label><input type="number" id="usCount" inputmode="decimal" placeholder="例如：3"></div>
+    <button class="btn btn-primary" onclick="saveUsage('${id}')">保存记录</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function saveUsage(id){
+  const date=$('#usDate').value, count=num($('#usCount').value);
+  if(!date||!count){ toast('请填写日期与次数'); return; }
+  const it = state.wealth.items.find(i=>i.id===id);
+  it.usage = (it.usage||[]).filter(u=>u.date!==date);
+  it.usage.push({date,count});
+  save(); closeModal(); openItemDetail(id);
+}
+function delUsage(id,date){
+  const it = state.wealth.items.find(i=>i.id===id);
+  it.usage = it.usage.filter(u=>u.date!==date);
+  save(); openItemDetail(id);
+}
+
+/* ---- 模块2：现金流追踪 ---- */
+function monthKey(d){ return d.slice(0,7); }
+function renderCashView(){
+  const el = $('#wealth-cash');
+  const now = new Date();
+  const ym = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const incs = state.wealth.incomes.filter(i=>monthKey(i.date)===ym);
+  const exps = state.wealth.expenses.filter(e=>monthKey(e.date)===ym);
+  const totalIn = incs.reduce((a,i)=>a+i.amount,0);
+  const ess = exps.filter(e=>e.category==='必需').reduce((a,e)=>a+e.amount,0);
+  const fun = exps.filter(e=>e.category==='娱乐').reduce((a,e)=>a+e.amount,0);
+  const stu = exps.filter(e=>e.category==='学习').reduce((a,e)=>a+e.amount,0);
+  const totalOut = ess+fun+stu;
+  const free = totalIn - ess;
+  // 生存天数：按本月日均必需开销折算
+  const dayOfMonth = now.getDate();
+  const dailyEss = ess/Math.max(1,dayOfMonth);
+  const surviveDays = dailyEss>0 ? Math.floor(free/dailyEss) : (free>0?'∞':0);
+
+  let html = `
+    <div class="card" style="border-color:rgba(61,220,132,.35)">
+      <div class="row">
+        <div class="grow">
+          <div class="sub">本月自由现金流（总收入 − 必需开销）</div>
+          <div class="big-num" style="color:${free>=0?'var(--green)':'var(--red)'}">${money(free)}</div>
+        </div>
+        <span style="font-size:34px">${free>=0?'🛡️':'⚠️'}</span>
+      </div>
+      <div class="sub" style="margin-top:8px">
+        ${free>=0 ? `🎮 当前现金流可支撑 <b style="color:var(--gold)">${surviveDays}${surviveDays==='∞'?'':' 天'}生存</b>！`
+                  : `💸 本月必需开销已超过收入，注意补给线！`}
+      </div>
+      <div class="divider"></div>
+      <div class="row sub money">
+        <span>收入 <b style="color:var(--green)">${money(totalIn)}</b></span>
+        <span style="margin-left:auto">开销 <b style="color:var(--red)">${money(totalOut)}</b></span>
+        <span style="margin-left:auto">结余 <b style="color:${totalIn-totalOut>=0?'var(--green)':'var(--red)'}">${money(totalIn-totalOut)}</b></span>
+      </div>
+    </div>
+    <div class="row" style="gap:8px;margin-bottom:12px">
+      <button class="btn btn-primary" style="flex:1" onclick="openIncomeModal()">＋ 收入</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="openExpenseModal()">＋ 开销</button>
+    </div>
+    <div class="card"><h3>🍩 本月开销构成（${ym}）</h3>
+      <canvas class="chart" id="cashDonut" style="height:170px"></canvas>
+      <div class="chart-legend">
+        <span><b style="background:#4da3ff"></b>必需 ${money(ess)}</span>
+        <span><b style="background:#ff9f43"></b>娱乐 ${money(fun)}</span>
+        <span><b style="background:#7c5cff"></b>学习 ${money(stu)}</span>
+      </div>
+    </div>
+    <div class="card"><h3>📈 近 6 个月结余趋势</h3>
+      <canvas class="chart" id="cashLine"></canvas>
+    </div>
+    <div class="card"><h3>📖 本月流水</h3>
+      <div id="cashRecords">${
+        (incs.length||exps.length) ? [...incs.map(i=>({t:'in',...i})),...exps.map(e=>({t:'out',...e}))]
+          .sort((a,b)=>a.date<b.date?1:-1)
+          .map(r=>`
+          <div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
+            <span>${r.t==='in'?'🟢':'🔴'}</span>
+            <div class="grow"><b>${esc(r.t==='in'?r.source:CAT_LABEL[r.category]||r.category)}</b>
+              <div class="sub money">${r.date.slice(5)}</div></div>
+            <b class="money" style="color:${r.t==='in'?'var(--green)':'var(--red)'}">${r.t==='in'?'+':'−'}${money(r.amount)}</b>
+            <button class="btn btn-sm btn-ghost" onclick="delRecord('${r.t}','${r.id}')">✕</button>
+          </div>`).join('')
+        : '<div class="sub" style="padding:8px 0">本月暂无流水记录</div>'
+      }</div></div>`;
+  el.innerHTML = html;
+
+  requestAnimationFrame(()=>{
+    drawDonut($('#cashDonut'), [
+      {label:'必需',value:ess,color:'#4da3ff'},
+      {label:'娱乐',value:fun,color:'#ff9f43'},
+      {label:'学习',value:stu,color:'#7c5cff'}
+    ], money(totalOut));
+    // 近6个月结余
+    const labels=[], balance=[];
+    for(let m=5;m>=0;m--){
+      const d = new Date(now.getFullYear(), now.getMonth()-m, 1);
+      const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      labels.push((d.getMonth()+1)+'月');
+      const inM = state.wealth.incomes.filter(i=>monthKey(i.date)===key).reduce((a,i)=>a+i.amount,0);
+      const outM = state.wealth.expenses.filter(e=>monthKey(e.date)===key).reduce((a,e)=>a+e.amount,0);
+      balance.push(inM-outM);
+    }
+    drawLineChart($('#cashLine'), [{name:'结余',color:'#3ddc84',data:balance}], labels);
+  });
+}
+const CAT_LABEL = {'必需':'必需 · 房租/餐饮/交通','娱乐':'娱乐','学习':'学习'};
+
+function openIncomeModal(){
+  openModal(`
+    <h2>记一笔收入</h2>
+    <div class="field"><label class="req">来源</label><input type="text" id="inSrc" placeholder="例如：工资、副业、红包"></div>
+    <div class="field"><label class="req">金额（元）</label><input type="number" id="inAmt" inputmode="decimal" placeholder="例如：8000"></div>
+    <div class="field"><label class="req">发生日期</label><input type="date" id="inDate" value="${todayStr()}"></div>
+    <button class="btn btn-primary" onclick="saveIncome()">保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function saveIncome(){
+  const source=$('#inSrc').value.trim(), amount=num($('#inAmt').value), date=$('#inDate').value;
+  if(!source||!amount||!date){ toast('请完整填写'); return; }
+  state.wealth.incomes.push({id:uid(),source,amount,date});
+  save(); closeModal(); renderCashView(); toast('🟢 收入 +'+money(amount));
+}
+function openExpenseModal(){
+  openModal(`
+    <h2>记一笔开销</h2>
+    <div class="field"><label class="req">类别</label>
+      <select id="exCat">
+        <option value="必需">必需（房租/餐饮/交通）</option>
+        <option value="娱乐">娱乐</option>
+        <option value="学习">学习</option>
+      </select></div>
+    <div class="field"><label class="req">金额（元）</label><input type="number" id="exAmt" inputmode="decimal" placeholder="例如：50"></div>
+    <div class="field"><label class="req">发生日期</label><input type="date" id="exDate" value="${todayStr()}"></div>
+    <button class="btn btn-primary" onclick="saveExpense()">保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function saveExpense(){
+  const category=$('#exCat').value, amount=num($('#exAmt').value), date=$('#exDate').value;
+  if(!amount||!date){ toast('请完整填写'); return; }
+  state.wealth.expenses.push({id:uid(),category,amount,date});
+  save(); closeModal(); renderCashView(); toast('🔴 开销 −'+money(amount));
+}
+function delRecord(t,id){
+  if(t==='in') state.wealth.incomes = state.wealth.incomes.filter(r=>r.id!==id);
+  else state.wealth.expenses = state.wealth.expenses.filter(r=>r.id!==id);
+  save(); renderCashView();
+}
+/* ============ 健康页 ============ */
+function renderHealthPage(){
+  renderLifeCard();
+  if($('#view-disease-detail').classList.contains('hidden')) renderDiseaseList();
+}
+function renderLifeCard(){
+  const el = $('#healthLife');
+  if(!state.health.birthday){
+    el.innerHTML = `
+      <div class="card" style="text-align:center;border-color:rgba(255,93,108,.35)">
+        <div style="font-size:36px;margin-bottom:6px">🌍</div>
+        <h2>生命天数计数器</h2>
+        <p class="sub" style="margin:8px 0 14px">首次使用请设置出生日期，解锁你的「存活天数」面板</p>
+        <div class="field" style="text-align:left"><label class="req">出生日期</label><input type="date" id="bdInput"></div>
+        <button class="btn btn-primary" onclick="saveBirthday()">开始计时</button>
+      </div>`;
+    return;
+  }
+  const days = Math.max(0, daysBetween(state.health.birthday, todayStr()));
+  const years = days/365.25;
+  const zelda = days/1826; // 《塞尔达》约 5 年一个开发周期
+  el.innerHTML = `
+    <div class="card" style="text-align:center;border-color:rgba(61,220,132,.3)">
+      <div style="font-size:32px">🌍</div>
+      <div class="sub" style="margin-top:4px">你已存活</div>
+      <div class="big-num" style="font-size:34px">${days.toLocaleString()}</div>
+      <div class="sub money" style="letter-spacing:1px">天 · DAY</div>
+      <div class="divider"></div>
+      <div class="row sub" style="text-align:center">
+        <div style="flex:1"><b style="color:var(--text);font-size:16px">${years.toFixed(1)}</b><br>地球年</div>
+        <div style="flex:1"><b style="color:var(--text);font-size:16px">${zelda.toFixed(1)}</b><br>个《塞尔达》开发周期</div>
+        <div style="flex:1"><b style="color:var(--text);font-size:16px">${(days*0.0167).toFixed(0)}</b><br>个满月之夜</div>
+      </div>
+      <div class="divider"></div>
+      <div class="sub">HP 恢复中 · 每一次呼吸都是回血 <button class="btn btn-sm btn-ghost" style="float:right" onclick="editBirthday()">修改</button></div>
+    </div>`;
+}
+function saveBirthday(){
+  const v = $('#bdInput').value;
+  if(!v){ toast('请选择出生日期'); return; }
+  state.health.birthday = v; save();
+  renderLifeCard(); toast('🎂 生命计时已启动！');
+}
+function editBirthday(){
+  openModal(`
+    <h2>修改出生日期</h2>
+    <div class="field"><label>出生日期</label><input type="date" id="bdEdit" value="${state.health.birthday}"></div>
+    <button class="btn btn-primary" onclick="state.health.birthday=$('#bdEdit').value||state.health.birthday;save();closeModal();renderLifeCard()">保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+
+/* ---- 疾病管理 ---- */
+function renderDiseaseList(){
+  const el = $('#view-disease-list');
+  const ds = [...state.health.diseases].sort((a,b)=>b.cost-a.cost);
+  let html = `<div class="card" style="padding:14px 14px 4px"><h3>🩺 疾病管理</h3></div>
+    <button class="btn btn-primary" onclick="openDiseaseModal()">＋ 添加疾病</button>`;
+  if(!ds.length){
+    html += `<div class="card empty">🛡️ 暂无疾病档案<br><span class="sub">记录每一次“debuff”，管理治疗与康复</span></div>`;
+  }else{
+    html += `<div class="stack">` + ds.map(d=>`
+      <div class="card clickable" onclick="openDiseaseDetail('${d.id}')">
+        <div class="row">
+          <span class="icon-big">${d.icon}</span>
+          <div class="grow">
+            <div class="row"><b>${esc(d.name)}</b>
+              <span class="tag ${d.status==='康复'?'green':'blue'}" style="margin-left:8px">${d.status}</span></div>
+            <div class="sub money" style="margin-top:3px">总花费：<b style="color:var(--red)">${money(d.cost)}</b></div>
+            <div class="sub">注意事项：${esc((d.notes||'—').slice(0,26))}${(d.notes||'').length>26?'…':''}</div>
+          </div>
+        </div></div>`).join('') + `</div>`;
+  }
+  el.innerHTML = html;
+}
+function openDiseaseModal(id){
+  const d = id ? state.health.diseases.find(x=>x.id===id) : null;
+  openModal(`
+    <h2>${d?'编辑疾病':'添加疾病'}</h2>
+    <div class="field"><label>图标</label>
+      <div class="row" style="flex-wrap:wrap;gap:6px">
+        ${DISEASE_ICONS.map(ic=>`<button class="btn btn-sm btn-ghost iconpick ${d&&d.icon===ic?'pickon':''}" data-ic="${ic}" onclick="pickIcon(this)" style="font-size:18px;padding:6px 10px">${ic}</button>`).join('')}
+      </div></div>
+    <div class="field"><label class="req">疾病名称</label><input type="text" id="dName" value="${d?esc(d.name):''}" placeholder="例如：近视"></div>
+    <div class="field"><label class="req">确诊日期</label><input type="date" id="dDate" value="${d?d.diagnoseDate:todayStr()}"></div>
+    <div class="field"><label class="req">总花费（元）</label><input type="number" id="dCost" inputmode="decimal" value="${d?d.cost:''}" placeholder="例如：2800"></div>
+    <div class="field"><label>注意事项（支持换行）</label><textarea id="dNotes" placeholder="例如：每20分钟看远处">${d?esc(d.notes):''}</textarea></div>
+    <div class="field"><label>当前状态</label>
+      <select id="dStatus">
+        <option value="治疗中" ${d&&d.status==='治疗中'?'selected':''}>治疗中</option>
+        <option value="康复" ${d&&d.status==='康复'?'selected':''}>康复</option>
+      </select></div>
+    <button class="btn btn-primary" onclick="saveDisease('${id||''}')">保存</button>
+    ${d?`<button class="btn btn-danger" style="margin-top:8px" onclick="deleteDisease('${id}')">删除疾病</button>`:''}
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+  window._pickIcon = d ? d.icon : DISEASE_ICONS[0];
+}
+function saveDisease(id){
+  const name=$('#dName').value.trim(), date=$('#dDate').value,
+        cost=num($('#dCost').value), notes=$('#dNotes').value.trim(),
+        status=$('#dStatus').value;
+  if(!name||!date){ toast('请填写名称与确诊日期'); return; }
+  if(id){
+    Object.assign(state.health.diseases.find(x=>x.id===id), {name,diagnoseDate:date,cost,notes,status,icon:window._pickIcon});
+  }else{
+    state.health.diseases.push({id:uid(),name,diagnoseDate:date,cost,notes,status,icon:window._pickIcon,milestones:[],tasks:[]});
+  }
+  save(); closeModal(); renderDiseaseList();
+  toast('🩺 疾病档案已更新');
+}
+function deleteDisease(id){
+  state.health.diseases = state.health.diseases.filter(x=>x.id!==id);
+  save(); closeModal(); goBack(); toast('疾病档案已删除');
+}
+
+/* ---- 疾病详情：时间轴 + 健康任务 ---- */
+function findDisease(id){ return state.health.diseases.find(x=>x.id===id); }
+function openDiseaseDetail(id){
+  $('#view-disease-list').classList.add('hidden');
+  const v = $('#view-disease-detail');
+  v.classList.remove('hidden');
+  showBackBtn();
+  renderDiseaseDetail(id);
+}
+function renderDiseaseDetail(id){
+  const d = findDisease(id);
+  const ms = [...(d.milestones||[])].sort((a,b)=>a.date<b.date?-1:1);
+  const tasks = d.tasks||[];
+  const doneTasks = tasks.filter(t=>t.done).length;
+  $('#view-disease-detail').innerHTML = `
+    <div class="card">
+      <div class="row">
+        <span class="icon-big">${d.icon}</span>
+        <div class="grow"><h2 style="margin:0">${esc(d.name)}</h2>
+          <div class="sub money">确诊 ${d.diagnoseDate} · 已 ${daysBetween(d.diagnoseDate,todayStr())} 天</div></div>
+        <span class="tag ${d.status==='康复'?'green':'blue'}">${d.status}</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row"><span class="sub">总花费</span><b class="money" style="color:var(--red);margin-left:auto">${money(d.cost)}</b></div>
+      ${d.notes?`<div class="sub" style="margin-top:8px;background:var(--card2);border-radius:10px;padding:10px;white-space:pre-wrap;line-height:1.7">📋 ${esc(d.notes)}</div>`:''}
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button class="btn btn-sm btn-ghost" style="flex:1" onclick="openDiseaseModal('${d.id}')">编辑</button>
+        <button class="btn btn-sm ${d.status==='康复'?'btn-ghost':'btn-primary'}" style="flex:1" onclick="toggleCure('${d.id}')">${d.status==='康复'?'↩ 重新治疗':'🎉 标记康复'}</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🧭 治疗时间轴</h3>
+      <div class="timeline">
+        <div class="tl-item done">
+          <div class="tl-date">${d.diagnoseDate}</div>
+          <b>确诊 · ${esc(d.name)}</b>
+          <div class="sub">debuff 挂载，开始攻略</div>
+        </div>
+        ${ms.map(m=>`
+        <div class="tl-item ${m.done?'done':''}">
+          <div class="tl-date">${m.date}</div>
+          <b>${esc(m.title)}</b>
+          ${m.done?'<div class="sub" style="color:var(--green)">已完成 ✓</div>':''}
+        </div>`).join('')}
+        <div class="tl-item goal">
+          <div class="tl-date">${d.status==='康复'?'已达成':'目标'}</div>
+          <b>🏁 康复${d.status==='康复'?'（已达成）':''}</b>
+          ${d.status!=='康复'?'<div class="sub">持续完成健康任务，摘掉 debuff</div>':''}
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openMilestoneModal('${d.id}')">＋ 添加治疗阶段</button>
+    </div>
+
+    <div class="card">
+      <h3>✅ 健康任务（${doneTasks}/${tasks.length}）</h3>
+      ${tasks.length ? tasks.map(t=>`
+        <label class="row" style="padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${d.id}','${t.id}')" style="width:18px;height:18px;accent-color:var(--green)">
+          <span style="${t.done?'text-decoration:line-through;color:var(--sub)':''}">${esc(t.title)}</span>
+        </label>`).join('') : '<div class="sub" style="padding:6px 0">还没有健康任务，例如「每日 2000 步」</div>'}
+      <button class="btn btn-ghost btn-sm" style="margin-top:10px" onclick="openTaskModal('${d.id}')">＋ 添加健康任务</button>
+    </div>`;
+}
+function toggleCure(id){
+  const d = findDisease(id);
+  d.status = d.status==='康复' ? '治疗中' : '康复';
+  save(); renderDiseaseDetail(id);
+  if(d.status==='康复') toast('🎉 成就达成：'+d.name+' 康复！');
+}
+function openMilestoneModal(id){
+  openModal(`
+    <h2>添加治疗阶段</h2>
+    <div class="field"><label class="req">日期</label><input type="date" id="msDate" value="${todayStr()}"></div>
+    <div class="field"><label class="req">阶段标题</label><input type="text" id="msTitle" placeholder="例如：配镜、复查、开始训练"></div>
+    <button class="btn btn-primary" onclick="saveMilestone('${id}')">保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function saveMilestone(id){
+  const date=$('#msDate').value, title=$('#msTitle').value.trim();
+  if(!date||!title){ toast('请完整填写'); return; }
+  const d = findDisease(id);
+  d.milestones = d.milestones||[];
+  d.milestones.push({id:uid(),date,title,done:false});
+  save(); closeModal(); renderDiseaseDetail(id);
+}
+function openTaskModal(id){
+  openModal(`
+    <h2>添加健康任务</h2>
+    <div class="field"><label class="req">任务内容</label><input type="text" id="tkTitle" placeholder="例如：每日 2000 步"></div>
+    <button class="btn btn-primary" onclick="saveTask('${id}')">保存</button>
+    <button class="btn btn-ghost" style="margin-top:8px" onclick="closeModal()">取消</button>`);
+}
+function saveTask(id){
+  const title=$('#tkTitle').value.trim();
+  if(!title){ toast('请填写任务内容'); return; }
+  const d = findDisease(id);
+  d.tasks = d.tasks||[];
+  d.tasks.push({id:uid(),title,done:false});
+  save(); closeModal(); renderDiseaseDetail(id);
+}
+function toggleTask(did,tid){
+  const t = findDisease(did).tasks.find(x=>x.id===tid);
+  t.done = !t.done; save(); renderDiseaseDetail(did);
+}
+/* ============ 职业页 ============ */
+function renderCareerPage(){
+  const c = state.career.current, t = state.career.target;
+  const achieve = t.income>0 ? clamp(c.income/t.income*100,0,100) : 0;
+  const gaps = (t.skills||[]).map(ts=>{
+    const sk = findSkill(ts.skillId);
+    return { ts, sk, gap: sk ? ts.reqLevel - sk.level : null };
+  });
+  const gapsOpen = gaps.filter(g=>g.sk && g.gap>0);
+  const gapsMissing = gaps.filter(g=>!g.sk);
+
+  $('#careerView').innerHTML = `
+    <div class="card">
+      <h3>🧑‍💻 当前职业</h3>
+      <div class="field"><label>职业名称</label><input type="text" value="${esc(c.name)}" placeholder="例如：后端工程师" onchange="setCareer('current','name',this.value)"></div>
+      <div class="row" style="gap:10px">
+        <div class="field grow"><label>月收入（元）</label><input type="number" inputmode="decimal" value="${c.income||''}" placeholder="8000" onchange="setCareer('current','income',num(this.value));renderCareerPage()"></div>
+        <div class="field grow"><label>日均工作时长（h）</label><input type="number" inputmode="decimal" value="${c.hours||''}" placeholder="8" onchange="setCareer('current','hours',num(this.value)||8);renderCareerPage()"></div>
+      </div>
+      <div class="field"><label>满意度</label>
+        <div class="stars">${[1,2,3,4,5].map(i=>`<span class="${i<=c.satisfaction?'on':''}" onclick="setStars(${i})">${'★'}</span>`).join('')}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎯 目标职业</h3>
+      <div class="field"><label>职业名称</label><input type="text" value="${esc(t.name)}" placeholder="例如：独立开发者" onchange="setCareer('target','name',this.value)"></div>
+      <div class="field"><label>目标月收入（元）</label><input type="number" inputmode="decimal" value="${t.income||''}" placeholder="20000" onchange="setCareer('target','income',num(this.value));renderCareerPage()"></div>
+      <div class="divider"></div>
+      <div class="sub" style="margin-bottom:8px">需掌握技能（关联技能页）：</div>
+      ${gaps.length ? gaps.map(g=>`
+        <div class="row" style="background:var(--card2);border-radius:10px;padding:9px 12px;margin-bottom:7px;border:1px solid var(--line)">
+          <div class="grow">
+            <b>${g.sk?esc(g.sk.name):'<span style="color:var(--red)">'+esc(g.ts.skillName||'已删除技能')+'</span>'}</b>
+            <div class="sub">${g.sk?('当前 Lv.'+g.sk.level+' '+LEVEL_NAMES[g.sk.level-1]+' → 要求 Lv.'+g.ts.reqLevel):'该技能已被删除'}</div>
+          </div>
+          ${g.sk ? (g.gap>0
+            ? `<span class="tag red">差 ${g.gap} 级</span>`
+            : `<span class="tag green">已达标</span>`) : ''}
+          <button class="btn btn-sm btn-ghost" onclick="removeTargetSkill('${g.ts.skillId}')">✕</button>
+        </div>`).join('') : '<div class="sub">尚未关联技能，从下方添加</div>'}
+      ${state.skills.length ? `
+      <div class="row" style="gap:8px">
+        <select id="tsSel" class="grow" style="background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:14px">
+          ${state.skills.map(s=>`<option value="${s.id}">${esc(s.name)}（Lv.${s.level}）</option>`).join('')}
+        </select>
+        <select id="tsLv" style="background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;font-size:14px">
+          ${[1,2,3,4,5].map(i=>`<option value="${i}" ${i===4?'selected':''}>${i}级 ${LEVEL_NAMES[i-1]}</option>`).join('')}
+        </select>
+        <button class="btn btn-sm btn-primary" onclick="addTargetSkill()">＋</button>
+      </div>` : `<div class="sub">先去 <b style="color:var(--gold)">技能页</b> 创建技能，再来关联</div>`}
+    </div>
+
+    <div class="card" style="border-color:rgba(124,92,255,.4)">
+      <h3>⚔️ 双职业对比面板</h3>
+      <div class="row">
+        <div class="grow"><b>${c.name?esc(c.name):'当前职业'}</b><div class="sub">月入 ${money(c.income)}</div></div>
+        <span style="color:var(--sub);font-size:20px">VS</span>
+        <div class="grow" style="text-align:right"><b style="color:var(--gold)">${t.name?esc(t.name):'目标职业'}</b><div class="sub">目标 ${money(t.income)}</div></div>
+      </div>
+      <div class="sub" style="margin-top:10px">收入达成率 ${t.income>0?Math.round(achieve):'—'}%</div>
+      ${progressBar(achieve, 'linear-gradient(90deg,#7c5cff,#4da3ff)')}
+      <div class="divider"></div>
+      <div class="sub" style="margin-bottom:6px">技能缺口：</div>
+      ${gapsOpen.length ? gapsOpen.map(g=>`
+        <div class="row clickable" onclick="jumpToSkill('${g.sk.id}')" style="background:rgba(255,93,108,.08);border:1px solid rgba(255,93,108,.25);border-radius:10px;padding:9px 12px;margin-bottom:7px">
+          <span>⚠️</span>
+          <div class="grow"><b>需提升「${esc(g.sk.name)}」至 ${g.ts.reqLevel} 级</b>
+          <div class="sub">点击跳转技能页查看修炼档案 →</div></div>
+        </div>`).join('')
+      : (gaps.length && !gapsOpen.length ? '<div class="sub" style="color:var(--green)">🎉 所有关联技能均已达标，可以发起转职挑战！</div>' : '<div class="sub">在目标职业中关联技能后，这里将显示缺口</div>')}
+    </div>
+
+    <div class="card">
+      <h3>🎚️ 工时模拟器</h3>
+      <div class="row" style="margin-bottom:2px">
+        <span class="sub">日均工作时长</span>
+        <b id="simHours" class="money" style="margin-left:auto;color:var(--gold);font-size:17px">${c.hours||8} h</b>
+      </div>
+      <input type="range" min="1" max="14" step="0.5" value="${c.hours||8}" oninput="runSim(this.value)">
+      <div class="sub" style="margin-top:-4px">基线 ${(c.hours||8)}h · 拖动实时预览收入与健康变化</div>
+      <div id="simOut" style="margin-top:12px"></div>
+    </div>`;
+  runSim(c.hours||8);
+}
+function setCareer(part,key,val){ state.career[part][key]=val; save(); }
+function setStars(i){ state.career.current.satisfaction=i; save(); renderCareerPage(); }
+function addTargetSkill(){
+  const skillId=$('#tsSel').value, reqLevel=parseInt($('#tsLv').value);
+  const sk = findSkill(skillId);
+  state.career.target.skills = state.career.target.skills.filter(s=>s.skillId!==skillId);
+  state.career.target.skills.push({skillId, skillName:sk.name, reqLevel});
+  save(); renderCareerPage();
+  toast('已关联技能「'+sk.name+'」，要求 '+LEVEL_NAMES[reqLevel-1]);
+}
+function removeTargetSkill(id){
+  state.career.target.skills = state.career.target.skills.filter(s=>s.skillId!==id);
+  save(); renderCareerPage();
+}
+function jumpToSkill(id){
+  switchPage('skill');
+  openSkillDetail(id);
+}
+function runSim(h){
+  h = num(h);
+  const c = state.career.current;
+  const base = c.hours||8;
+  $('#simHours').textContent = h+' h';
+  const out = $('#simOut'); if(!out) return;
+  const dH = Math.round((h-base)*10)/10;
+  let newIncome, dIncome;
+  if(base>0){
+    newIncome = Math.round(c.income*h/base);
+    dIncome = newIncome - c.income;
+  }else{ newIncome=c.income; dIncome=0; }
+  const healthPenalty = Math.max(0, (h-base))*2.5;
+  const healthGain = Math.max(0, (base-h))*2;
+  out.innerHTML = `
+    <div class="row" style="background:var(--card2);border-radius:12px;padding:12px;gap:6px">
+      <div style="flex:1.2">
+        <div class="sub">预估月收入</div>
+        <b class="money" style="font-size:18px">${money(newIncome)}</b>
+        <div class="sub money" style="color:${dIncome>=0?'var(--green)':'var(--red)'}">${dIncome>=0?'+':''}${money(dIncome)}</div>
+      </div>
+      <div style="width:1px;background:var(--line)"></div>
+      <div style="flex:1;text-align:center">
+        <div class="sub">工时变化</div>
+        <b class="money" style="font-size:18px;color:${dH>0?'var(--orange)':'var(--blue)'}">${dH>0?'+':''}${dH}h</b>
+      </div>
+      <div style="width:1px;background:var(--line)"></div>
+      <div style="flex:1;text-align:right">
+        <div class="sub">健康损耗</div>
+        <b class="money" style="font-size:18px;color:${healthPenalty>0?'var(--red)':'var(--green)'}">${healthPenalty>0?'-'+healthPenalty+'%':(healthGain>0?'+'+healthGain+'%':'0%')}</b>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:8px;line-height:1.7">
+      ${healthPenalty>12?'☠️ 警告：该强度将严重透支 HP，技能修炼时间也会被挤占。<br>':''}
+      ${h<=base&&base>=10?'🌿 减少工时是给「健康」与「技能树」腾出成长空间。<br>':''}
+      ${dIncome>0?`💰 每多工作 1h ≈ +${money(base>0?c.income/base:0)}/月，但注意边际递减与健康成本。`:'⚖️ 收入与健康的交易，是这局游戏的核心抉择。'}
+    </div>`;
+}
+
+/* ============ 启动 ============ */
+renderCurrentPage();
+window.addEventListener('resize', ()=>{ if(currentPage==='wealth') renderWealthPage(); });
+
+/* ============ 自检（仅 ?selftest=1 时运行，结果写入标题） ============ */
+if(location.search.indexOf('selftest')>=0){
+  localStorage.removeItem('lifeRPG.v1');
+  state = loadState();
+  const results = [];
+  const ok = (name, cond) => results.push((cond?'PASS ':'FAIL ')+name);
+  try{
+    // -- 技能流 --
+    openNewSkillModal();
+    $('#nsName').value = '钢琴';
+    createSkill();
+    const sk = state.skills[state.skills.length-1];
+    ok('新建技能生成5级模板', sk && sk.levels.length===5 && sk.level===1);
+    openLevelDetail(sk.id, 1);
+    saveLvField('flag','能双手弹小星星'); saveLvField('task','每日哈农');
+    saveLvField('valid','慢速分手'); saveLvField('invalid','只弹喜欢的段落');
+    ok('等级档案自动保存', sk.levels[0].flag==='能双手弹小星星');
+    onLvSlider('2');
+    ok('滑动升级(钢琴→入门)', sk.level===2 && $('#view-level-detail').innerHTML.indexOf('入门')>=0);
+    ok('升级建议生成', upgradeSuggestion(sk).length>5);
+    goBack();
+
+    // -- 财富流 --
+    state.wealth.items.push({id:uid(),name:'手机',price:4999,lifeDays:1095,buyDate:'2026-01-01',icon:'📱',usage:[{date:'2026-10-01',count:3},{date:'2026-10-20',count:5}]});
+    state.wealth.incomes.push({id:uid(),source:'工资',amount:8000,date:todayStr()});
+    state.wealth.expenses.push({id:uid(),category:'必需',amount:2500,date:todayStr()});
+    state.wealth.expenses.push({id:uid(),category:'娱乐',amount:500,date:todayStr()});
+    switchPage('wealth'); switchWealthTab('items');
+    ok('物品日均成本计算', Math.abs(itemDailyCost(state.wealth.items[0])-4999/1095)<0.001);
+    ok('物品列表渲染', $('#wealth-items').innerHTML.indexOf('手机')>=0);
+    openItemDetail(state.wealth.items[0].id);
+    ok('物品详情折线图', !!$('#itemChart'));
+    closeModal();
+    switchWealthTab('cash');
+    ok('现金流渲染(含图表)', $('#wealth-cash').innerHTML.indexOf('自由现金流')>=0 && !!$('#cashDonut') && !!$('#cashLine'));
+    ok('生存天数提示', $('#wealth-cash').innerHTML.indexOf('生存')>=0);
+
+    // -- 健康流 --
+    state.health.birthday = '1991-05-15';
+    state.health.diseases.push({id:uid(),name:'近视',diagnoseDate:'2010-01-01',cost:2800,notes:'每20分钟看远处',status:'治疗中',icon:'👓',milestones:[{id:uid(),date:'2015-01-01',title:'配镜',done:false}],tasks:[{id:uid(),title:'每日2000步',done:false}]});
+    switchPage('health');
+    ok('生命天数计算', $('#healthLife').innerHTML.indexOf('天')>=0 && daysBetween('1991-05-15',todayStr())>12000);
+    ok('疾病列表按花费排序', $('#view-disease-list').innerHTML.indexOf('近视')>=0);
+    openDiseaseDetail(state.health.diseases[0].id);
+    ok('疾病时间轴渲染', $('#view-disease-detail').innerHTML.indexOf('康复')>=0);
+    toggleCure(state.health.diseases[0].id);
+    ok('标记康复', state.health.diseases[0].status==='康复');
+    goBack();
+
+    // -- 职业流 --
+    state.career.current = {name:'后端工程师', income:8000, hours:8, satisfaction:3};
+    state.career.target = {name:'独立开发者', income:20000, skills:[{skillId:sk.id, skillName:sk.name, reqLevel:4}]};
+    switchPage('career');
+    ok('职业页渲染', $('#careerView').innerHTML.indexOf('独立开发者')>=0);
+    ok('收入达成率', $('#careerView').innerHTML.indexOf('40%')>=0);
+    ok('技能缺口显示', $('#careerView').innerHTML.indexOf('需提升')>=0);
+    runSim(10);
+    ok('工时模拟器', $('#simOut').innerHTML.indexOf('+¥2,000')>=0 && $('#simOut').innerHTML.indexOf('-5%')>=0);
+    jumpToSkill(sk.id);
+    ok('缺口跳转技能页', currentPage==='skill' && !$('#view-skill-detail').classList.contains('hidden'));
+    goBack();
+
+    // -- 持久化 --
+    save();
+    const persisted = JSON.parse(localStorage.getItem('lifeRPG.v1'));
+    ok('localStorage持久化', persisted && persisted.skills.length===1 && persisted.health.diseases.length===1);
+
+    const failed = results.filter(r=>r.indexOf('FAIL')===0);
+    document.title = failed.length ? ('SELFTEST_FAIL('+failed.length+') '+failed.join('|'))
+                                    : ('SELFTEST_OK('+results.length+'项全部通过)');
+  }catch(e){
+    document.title = 'SELFTEST_ERROR:'+(e && e.message);
+  }
+}
+</script>
+</body>
+</html>
